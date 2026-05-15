@@ -175,3 +175,59 @@ it('does not send a degraded notification if no response time threshold is set',
 
     Mail::assertNotSent(MonitorDegradedMail::class);
 });
+
+// ─────────────────────────────────────────────
+// Notification cooldowns
+// ─────────────────────────────────────────────
+
+it('does not send a down notification if cooldown period has not passed', function () {
+    Mail::fake();
+
+    $monitor = makeMonitorWithUser([
+        'threshold'            => 3,
+        'consecutive_failures' => 2,
+        'check_interval'       => 5,
+        'status'               => 'pending',
+        // Last notified just now — cooldown not expired
+        'last_notified_at'     => now()->subMinutes(1),
+    ]);
+
+    $checkService = new CheckService();
+    $checkService->handleFailedCheck($monitor);
+
+    Mail::assertNotSent(MonitorDownMail::class);
+});
+
+it('sends a down notification if cooldown period has passed', function () {
+    Mail::fake();
+
+    $monitor = makeMonitorWithUser([
+        'threshold'            => 3,
+        'consecutive_failures' => 2,
+        'check_interval'       => 5,
+        'status'               => 'pending',
+        // Last notified long ago — cooldown expired
+        'last_notified_at'     => now()->subHours(2),
+    ]);
+
+    $checkService = new CheckService();
+    $checkService->handleFailedCheck($monitor);
+
+    Mail::assertSent(MonitorDownMail::class);
+});
+
+it('sends a down notification if never notified before', function () {
+    Mail::fake();
+
+    $monitor = makeMonitorWithUser([
+        'threshold'            => 3,
+        'consecutive_failures' => 2,
+        'status'               => 'pending',
+        'last_notified_at'     => null,
+    ]);
+
+    $checkService = new CheckService();
+    $checkService->handleFailedCheck($monitor);
+
+    Mail::assertSent(MonitorDownMail::class);
+});

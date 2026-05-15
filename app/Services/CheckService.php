@@ -15,6 +15,29 @@ use Illuminate\Support\Facades\Mail;
 class CheckService
 {
     /**
+     * Determine if the cooldown period has passed since the last notification.
+     * Cooldown period is check_interval * threshold minutes.
+     */
+    private function canSendNotification(Monitor $monitor): bool
+    {
+        if ($monitor->last_notified_at === null) {
+            return true;
+        }
+
+        $cooldownMinutes = $monitor->check_interval * $monitor->threshold;
+
+        return $monitor->last_notified_at->addMinutes($cooldownMinutes)->isPast();
+    }
+
+    /**
+     * Mark the monitor as notified.
+     */
+    private function markNotified(Monitor $monitor): void
+    {
+        $monitor->update(['last_notified_at' => now()]);
+    }
+
+    /**
      * Determine if a status code means the site is up.
      * 2xx and 3xx status codes are considered up.
      */
@@ -50,12 +73,18 @@ class CheckService
         // Close any open incident on recovery
         if ($previousStatus === 'down' && $newStatus === 'up') {
             $this->closeIncident($monitor);
-            Mail::to($monitor->user->email)->send(new MonitorRecoveredMail($monitor));
+            if ($this->canSendNotification($monitor)) {
+                Mail::to($monitor->user->email)->send(new MonitorRecoveredMail($monitor));
+                $this->markNotified($monitor);
+            }
         }
 
         // Send degraded notification if monitor just became degraded
         if ($previousStatus !== 'degraded' && $newStatus === 'degraded') {
-            Mail::to($monitor->user->email)->send(new MonitorDegradedMail($monitor));
+            if ($this->canSendNotification($monitor)) {
+                Mail::to($monitor->user->email)->send(new MonitorDegradedMail($monitor));
+                $this->markNotified($monitor);
+            }
         }
     }
 
@@ -81,7 +110,10 @@ class CheckService
             // Open a new incident
             $this->openIncident($monitor);
 
-            Mail::to($monitor->user->email)->send(new MonitorDownMail($monitor));
+            if ($this->canSendNotification($monitor)) {
+                Mail::to($monitor->user->email)->send(new MonitorDownMail($monitor));
+                $this->markNotified($monitor);
+            }
 
             return;
         }
