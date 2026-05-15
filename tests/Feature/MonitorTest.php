@@ -273,3 +273,102 @@ it('returns 404 if user tries to delete another users monitor', function () {
     $response->assertStatus(404)
         ->assertJson(['message' => 'Monitor not found.']);
 });
+
+// ─────────────────────────────────────────────
+// Check History
+// ─────────────────────────────────────────────
+
+it('returns paginated check history for a monitor', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    \App\Models\MonitorCheck::factory()->count(20)->create([
+        'monitor_id' => $monitor->id,
+    ]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/history");
+
+    $response->assertStatus(200)
+        ->assertJsonStructure([
+            'data' => [
+                '*' => [
+                    'id',
+                    'monitor_id',
+                    'status_code',
+                    'response_time_ms',
+                    'is_up',
+                    'checked_at',
+                ],
+            ],
+            'meta' => [
+                'current_page',
+                'per_page',
+                'total',
+            ],
+        ])
+        ->assertJsonPath('meta.total', 20)
+        ->assertJsonPath('meta.per_page', 15)
+        ->assertJsonPath('meta.current_page', 1);
+});
+
+it('returns check history ordered by checked_at descending', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    \App\Models\MonitorCheck::factory()->create([
+        'monitor_id' => $monitor->id,
+        'checked_at' => now()->subMinutes(10),
+    ]);
+
+    \App\Models\MonitorCheck::factory()->create([
+        'monitor_id' => $monitor->id,
+        'checked_at' => now()->subMinutes(5),
+    ]);
+
+    \App\Models\MonitorCheck::factory()->create([
+        'monitor_id' => $monitor->id,
+        'checked_at' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/history");
+
+    $data = $response->json('data');
+
+    expect($data[0]['checked_at'])->toBeGreaterThan($data[1]['checked_at']);
+    expect($data[1]['checked_at'])->toBeGreaterThan($data[2]['checked_at']);
+});
+
+it('respects per_page query parameter', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    \App\Models\MonitorCheck::factory()->count(20)->create([
+        'monitor_id' => $monitor->id,
+    ]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/history?per_page=5");
+
+    $response->assertStatus(200)
+        ->assertJsonPath('meta.per_page', 5)
+        ->assertJsonCount(5, 'data');
+});
+
+it('returns 404 for check history if monitor does not exist', function () {
+    $user = authUser();
+
+    $response = $this->actingAs($user)->getJson('/api/monitors/999/history');
+
+    $response->assertStatus(404)
+        ->assertJson(['message' => 'Monitor not found.']);
+});
+
+it('returns 404 for check history if monitor belongs to another user', function () {
+    $userOne = authUser();
+    $userTwo = User::factory()->create();
+    $monitor = Monitor::factory()->create(['user_id' => $userTwo->id]);
+
+    $response = $this->actingAs($userOne)->getJson("/api/monitors/{$monitor->id}/history");
+
+    $response->assertStatus(404)
+        ->assertJson(['message' => 'Monitor not found.']);
+});

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Monitor;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Monitor\CreateMonitorRequest;
 use App\Http\Requests\Monitor\UpdateMonitorRequest;
+use App\Http\Resources\MonitorCheckResource;
 use App\Http\Resources\MonitorResource;
 use App\Services\MonitorService;
 use Illuminate\Http\JsonResponse;
@@ -85,5 +86,30 @@ class MonitorController extends Controller
         $this->monitorService->delete($monitor);
 
         return response()->json(['message' => 'Monitor deleted successfully.']);
+    }
+
+    /**
+     * Get paginated check history for a monitor.
+     */
+    public function history(Request $request, int $id): JsonResponse
+    {
+        $monitor = $this->monitorService->findForUser($request->user(), $id);
+
+        if (! $monitor) {
+            return response()->json(['message' => 'Monitor not found.'], 404);
+        }
+
+        $perPage = min((int) $request->query('per_page', 15), 100);
+
+        $checks = $this->monitorService->getHistory($monitor, $perPage);
+
+        return response()->json([
+            'data' => MonitorCheckResource::collection($checks->items()),
+            'meta' => [
+                'current_page' => $checks->currentPage(),
+                'per_page'     => $checks->perPage(),
+                'total'        => $checks->total(),
+            ],
+        ]);
     }
 }

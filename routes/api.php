@@ -25,4 +25,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Monitors
     Route::apiResource('monitors', MonitorController::class);
+    Route::get('monitors/{id}/history', [MonitorController::class, 'history']);
 });

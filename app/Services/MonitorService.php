@@ -65,6 +65,16 @@ class MonitorService
     }
 
     /**
+     * Get paginated check history for a monitor.
+     */
+    public function getHistory(Monitor $monitor, int $perPage = 15): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        return $monitor->checks()
+            ->orderBy('checked_at', 'desc')
+            ->paginate($perPage);
+    }
+
+    /**
      * Calculate the uptime percentage for a monitor.
      */
     public function uptimePercentage(Monitor $monitor): ?float
