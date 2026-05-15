@@ -4,7 +4,7 @@
 
 namespace App\Http\Resources;
 
-use App\Services\MonitorService;
+use App\Services\CheckService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,7 +17,7 @@ class MonitorResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $monitorService = app(MonitorService::class);
+        $checkService = app(CheckService::class);
 
         return [
             'id'                         => $this->id,
@@ -31,7 +31,7 @@ class MonitorResource extends JsonResource
             'custom_headers'             => $this->custom_headers,
             'status'                     => $this->status,
             'last_checked_at'            => $this->last_checked_at?->toIso8601String(),
-            'uptime_percentage'          => $monitorService->uptimePercentage($this->resource),
+            'uptime_percentage'          => $checkService->uptimePercentage($this->resource),
             'created_at'                 => $this->created_at->toIso8601String(),
         ];
     }
