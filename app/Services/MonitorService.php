@@ -118,4 +118,14 @@ class MonitorService
             ->orderBy('checked_at', 'desc')
             ->paginate($perPage);
     }
+
+    /**
+     * Get incident history for a monitor.
+     */
+    public function getIncidents(Monitor $monitor): \Illuminate\Database\Eloquent\Collection
+    {
+        return $monitor->incidents()
+            ->orderBy('started_at', 'desc')
+            ->get();
+    }
 }

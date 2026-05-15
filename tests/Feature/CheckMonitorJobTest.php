@@ -187,7 +187,7 @@ it('does nothing if monitor was deleted before job runs', function () {
     $monitorId = $monitor->id;
 
     // Soft delete the monitor before the job runs
-    $monitor->delete();
+    $monitor->deleteQuietly();
 
     CheckMonitorJob::dispatchSync($monitor);
 
@@ -195,4 +195,71 @@ it('does nothing if monitor was deleted before job runs', function () {
     $this->assertDatabaseMissing('monitor_checks', [
         'monitor_id' => $monitorId,
     ]);
+});
+
+// ─────────────────────────────────────────────
+// Incident grouping
+// ─────────────────────────────────────────────
+
+it('opens an incident when monitor goes down', function () {
+    Http::fake([
+        'https://example.com' => Http::response('Error', 500),
+    ]);
+
+    $monitor = makeMonitorForJob([
+        'threshold'            => 3,
+        'consecutive_failures' => 2,
+    ]);
+
+    CheckMonitorJob::dispatchSync($monitor);
+
+    $this->assertDatabaseHas('incidents', [
+        'monitor_id' => $monitor->id,
+        'ended_at'   => null,
+    ]);
+});
+
+it('does not open a second incident if one is already open', function () {
+    Http::fake([
+        'https://example.com' => Http::response('Error', 500),
+    ]);
+
+    $monitor = makeMonitorForJob([
+        'status'               => 'down',
+        'threshold'            => 3,
+        'consecutive_failures' => 3,
+    ]);
+
+    // Create an existing open incident
+    \App\Models\Incident::create([
+        'monitor_id' => $monitor->id,
+        'started_at' => now()->subMinutes(10),
+    ]);
+
+    CheckMonitorJob::dispatchSync($monitor);
+
+    $this->assertDatabaseCount('incidents', 1);
+});
+
+it('closes the incident when monitor recovers', function () {
+    Http::fake([
+        'https://example.com' => Http::response('OK', 200),
+    ]);
+
+    $monitor = makeMonitorForJob([
+        'status'               => 'down',
+        'consecutive_failures' => 3,
+    ]);
+
+    \App\Models\Incident::create([
+        'monitor_id' => $monitor->id,
+        'started_at' => now()->subMinutes(10),
+    ]);
+
+    CheckMonitorJob::dispatchSync($monitor);
+
+    $incident = $monitor->incidents()->first();
+
+    expect($incident->ended_at)->not->toBeNull();
+    expect($incident->duration_seconds)->toBeGreaterThan(0);
 });

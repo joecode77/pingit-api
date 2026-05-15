@@ -506,3 +506,53 @@ it('returns 401 for dashboard if unauthenticated', function () {
 
     $response->assertStatus(401);
 });
+
+// ─────────────────────────────────────────────
+// Incidents
+// ─────────────────────────────────────────────
+
+it('returns incident history for a monitor', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    \App\Models\Incident::factory()->count(3)->create([
+        'monitor_id' => $monitor->id,
+    ]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/incidents");
+
+    $response->assertStatus(200)
+        ->assertJsonCount(3, 'data')
+        ->assertJsonStructure([
+            'data' => [
+                '*' => [
+                    'id',
+                    'monitor_id',
+                    'started_at',
+                    'ended_at',
+                    'duration_seconds',
+                    'is_ongoing',
+                ],
+            ],
+        ]);
+});
+
+it('returns 404 for incidents if monitor does not exist', function () {
+    $user = authUser();
+
+    $response = $this->actingAs($user)->getJson('/api/monitors/999/incidents');
+
+    $response->assertStatus(404)
+        ->assertJson(['message' => 'Monitor not found.']);
+});
+
+it('returns 404 for incidents if monitor belongs to another user', function () {
+    $userOne = authUser();
+    $userTwo = User::factory()->create();
+    $monitor = Monitor::factory()->create(['user_id' => $userTwo->id]);
+
+    $response = $this->actingAs($userOne)->getJson("/api/monitors/{$monitor->id}/incidents");
+
+    $response->assertStatus(404)
+        ->assertJson(['message' => 'Monitor not found.']);
+});

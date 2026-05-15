@@ -61,4 +61,9 @@ class Monitor extends Model
     {
         return $this->hasMany(MonitorCheck::class);
     }
+
+    public function incidents(): HasMany
+    {
+        return $this->hasMany(Incident::class);
+    }
 }

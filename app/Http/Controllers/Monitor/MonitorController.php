@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Monitor;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Monitor\CreateMonitorRequest;
 use App\Http\Requests\Monitor\UpdateMonitorRequest;
+use App\Http\Resources\IncidentResource;
 use App\Http\Resources\MonitorCheckResource;
 use App\Http\Resources\MonitorResource;
 use App\Services\MonitorService;
@@ -123,6 +124,24 @@ class MonitorController extends Controller
         $monitor = $this->monitorService->resume($monitor);
 
         return (new MonitorResource($monitor))->response();
+    }
+
+    /**
+     * Get incident history for a monitor.
+     */
+    public function incidents(Request $request, int $id): JsonResponse
+    {
+        $monitor = $this->monitorService->findForUser($request->user(), $id);
+
+        if (! $monitor) {
+            return response()->json(['message' => 'Monitor not found.'], 404);
+        }
+
+        $incidents = $this->monitorService->getIncidents($monitor);
+
+        return response()->json([
+            'data' => IncidentResource::collection($incidents),
+        ]);
     }
 
     /**
