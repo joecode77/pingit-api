@@ -5,6 +5,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Monitor\MonitorController;
+use App\Http\Controllers\NotificationChannel\NotificationChannelController;
 use Illuminate\Support\Facades\Route;
 
 // ─────────────────────────────────────────────
@@ -34,4 +35,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('monitors/{id}/response-times', [MonitorController::class, 'responseTimes']);
     Route::post('monitors/{id}/pause', [MonitorController::class, 'pause']);
     Route::post('monitors/{id}/resume', [MonitorController::class, 'resume']);
+
+    // Notification Channels
+    Route::get('monitors/{monitorId}/channels', [NotificationChannelController::class, 'index']);
+    Route::post('monitors/{monitorId}/channels', [NotificationChannelController::class, 'store']);
+    Route::delete('monitors/{monitorId}/channels/{channelId}', [NotificationChannelController::class, 'destroy']);
 });

@@ -10,6 +10,8 @@ use App\Mail\MonitorRecoveredMail;
 use App\Models\Incident;
 use App\Models\Monitor;
 use App\Models\MonitorCheck;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class CheckService
@@ -77,6 +79,7 @@ class CheckService
                 Mail::to($monitor->user->email)->send(new MonitorRecoveredMail($monitor));
                 $this->markNotified($monitor);
             }
+            $this->dispatchWebhooks($monitor, 'recovery');
         }
 
         // Send degraded notification if monitor just became degraded
@@ -85,6 +88,7 @@ class CheckService
                 Mail::to($monitor->user->email)->send(new MonitorDegradedMail($monitor));
                 $this->markNotified($monitor);
             }
+            $this->dispatchWebhooks($monitor, 'degraded');
         }
     }
 
@@ -114,6 +118,8 @@ class CheckService
                 Mail::to($monitor->user->email)->send(new MonitorDownMail($monitor));
                 $this->markNotified($monitor);
             }
+
+            $this->dispatchWebhooks($monitor, 'down');
 
             return;
         }
@@ -149,6 +155,33 @@ class CheckService
         $successful = $monitor->checks()->where('is_up', true)->count();
 
         return round(($successful / $total) * 100, 2);
+    }
+
+    /**
+     * Dispatch webhook notifications for a given event.
+     */
+    private function dispatchWebhooks(Monitor $monitor, string $event): void
+    {
+        $webhooks = $monitor->notificationChannels()
+            ->where('type', 'webhook')
+            ->where("notify_on_{$event}", true)
+            ->get();
+
+        foreach ($webhooks as $webhook) {
+            try {
+                Http::timeout(10)->post($webhook->value, [
+                    'event'        => "monitor.{$event}",
+                    'monitor'      => [
+                        'id'   => $monitor->id,
+                        'name' => $monitor->name ?? $monitor->url,
+                        'url'  => $monitor->url,
+                    ],
+                    'triggered_at' => now()->toIso8601String(),
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning("Webhook dispatch failed for monitor [{$monitor->id}]: {$e->getMessage()}");
+            }
+        }
     }
 
     /**
