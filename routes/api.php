@@ -3,19 +3,26 @@
 // routes/api.php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Monitor\MonitorController;
 use Illuminate\Support\Facades\Route;
 
 // ─────────────────────────────────────────────
-// Auth Routes
+// Public Routes
 // ─────────────────────────────────────────────
 
 Route::prefix('auth')->group(function () {
-    // Public routes
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+});
 
-    // Protected routes
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::post('/logout', [AuthController::class, 'logout']);
-    });
+// ─────────────────────────────────────────────
+// Protected Routes
+// ─────────────────────────────────────────────
+
+Route::middleware('auth:sanctum')->group(function () {
+    // Auth
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+
+    // Monitors
+    Route::apiResource('monitors', MonitorController::class);
 });
