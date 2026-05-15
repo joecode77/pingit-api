@@ -25,7 +25,12 @@ class MonitorController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        $monitors = $this->monitorService->getAllForUser($request->user());
+        $monitors = $this->monitorService->getAllForUser($request->user(), $request->only([
+            'status',
+            'search',
+            'sort',
+            'direction',
+        ]));
 
         return MonitorResource::collection($monitors);
     }
@@ -86,6 +91,38 @@ class MonitorController extends Controller
         $this->monitorService->delete($monitor);
 
         return response()->json(['message' => 'Monitor deleted successfully.']);
+    }
+
+    /**
+     * Pause a monitor.
+     */
+    public function pause(Request $request, int $id): JsonResponse
+    {
+        $monitor = $this->monitorService->findForUser($request->user(), $id);
+
+        if (! $monitor) {
+            return response()->json(['message' => 'Monitor not found.'], 404);
+        }
+
+        $monitor = $this->monitorService->pause($monitor);
+
+        return (new MonitorResource($monitor))->response();
+    }
+
+    /**
+     * Resume a paused monitor.
+     */
+    public function resume(Request $request, int $id): JsonResponse
+    {
+        $monitor = $this->monitorService->findForUser($request->user(), $id);
+
+        if (! $monitor) {
+            return response()->json(['message' => 'Monitor not found.'], 404);
+        }
+
+        $monitor = $this->monitorService->resume($monitor);
+
+        return (new MonitorResource($monitor))->response();
     }
 
     /**

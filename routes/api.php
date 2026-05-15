@@ -3,6 +3,7 @@
 // routes/api.php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Monitor\MonitorController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,7 +24,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+
     // Monitors
     Route::apiResource('monitors', MonitorController::class);
     Route::get('monitors/{id}/history', [MonitorController::class, 'history']);
+    Route::post('monitors/{id}/pause', [MonitorController::class, 'pause']);
+    Route::post('monitors/{id}/resume', [MonitorController::class, 'resume']);
 });

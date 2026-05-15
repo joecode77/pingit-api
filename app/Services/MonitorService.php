@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Monitor;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 
 class MonitorService
@@ -30,11 +31,32 @@ class MonitorService
     }
 
     /**
-     * Get all monitors for the given user.
+     * Get all monitors for the given user with optional filtering, sorting, and searching.
      */
-    public function getAllForUser(User $user): Collection
+    public function getAllForUser(User $user, array $filters = []): Collection
     {
-        return $user->monitors()->orderBy('created_at', 'desc')->get();
+        $query = $user->monitors();
+
+        // Filter by status
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        // Search by name or url
+        if (! empty($filters['search'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->where('name', 'like', "%{$filters['search']}%")
+                    ->orWhere('url', 'like', "%{$filters['search']}%");
+            });
+        }
+
+        // Sort
+        $sortColumn    = in_array($filters['sort'] ?? '', ['name', 'created_at', 'last_checked_at']) ? $filters['sort'] : 'created_at';
+        $sortDirection = ($filters['direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        $query->orderBy($sortColumn, $sortDirection);
+
+        return $query->get();
     }
 
     /**
@@ -65,28 +87,35 @@ class MonitorService
     }
 
     /**
+     * Pause a monitor.
+     */
+    public function pause(Monitor $monitor): Monitor
+    {
+        $monitor->update(['status' => 'paused']);
+
+        return $monitor->fresh();
+    }
+
+    /**
+     * Resume a paused monitor.
+     */
+    public function resume(Monitor $monitor): Monitor
+    {
+        $monitor->update([
+            'status'       => 'pending',
+            'next_check_at' => now(),
+        ]);
+
+        return $monitor->fresh();
+    }
+
+    /**
      * Get paginated check history for a monitor.
      */
-    public function getHistory(Monitor $monitor, int $perPage = 15): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function getHistory(Monitor $monitor, int $perPage = 15): LengthAwarePaginator
     {
         return $monitor->checks()
             ->orderBy('checked_at', 'desc')
             ->paginate($perPage);
-    }
-
-    /**
-     * Calculate the uptime percentage for a monitor.
-     */
-    public function uptimePercentage(Monitor $monitor): ?float
-    {
-        $total = $monitor->checks()->count();
-
-        if ($total === 0) {
-            return null;
-        }
-
-        $successful = $monitor->checks()->where('is_up', true)->count();
-
-        return round(($successful / $total) * 100, 2);
     }
 }

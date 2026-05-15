@@ -372,3 +372,137 @@ it('returns 404 for check history if monitor belongs to another user', function 
     $response->assertStatus(404)
         ->assertJson(['message' => 'Monitor not found.']);
 });
+
+// ─────────────────────────────────────────────
+// Pause & Resume
+// ─────────────────────────────────────────────
+
+it('allows a user to pause a monitor', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id, 'status' => 'up']);
+
+    $response = $this->actingAs($user)->postJson("/api/monitors/{$monitor->id}/pause");
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.status', 'paused');
+
+    $this->assertDatabaseHas('monitors', [
+        'id'     => $monitor->id,
+        'status' => 'paused',
+    ]);
+});
+
+it('allows a user to resume a paused monitor', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id, 'status' => 'paused']);
+
+    $response = $this->actingAs($user)->postJson("/api/monitors/{$monitor->id}/resume");
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.status', 'pending');
+});
+
+it('returns 404 if user tries to pause another users monitor', function () {
+    $userOne = authUser();
+    $userTwo = User::factory()->create();
+    $monitor = Monitor::factory()->create(['user_id' => $userTwo->id]);
+
+    $response = $this->actingAs($userOne)->postJson("/api/monitors/{$monitor->id}/pause");
+
+    $response->assertStatus(404)
+        ->assertJson(['message' => 'Monitor not found.']);
+});
+
+it('returns 404 if user tries to resume another users monitor', function () {
+    $userOne = authUser();
+    $userTwo = User::factory()->create();
+    $monitor = Monitor::factory()->create(['user_id' => $userTwo->id, 'status' => 'paused']);
+
+    $response = $this->actingAs($userOne)->postJson("/api/monitors/{$monitor->id}/resume");
+
+    $response->assertStatus(404)
+        ->assertJson(['message' => 'Monitor not found.']);
+});
+
+// ─────────────────────────────────────────────
+// Filter & Sort
+// ─────────────────────────────────────────────
+
+it('filters monitors by status', function () {
+    $user = authUser();
+
+    Monitor::factory()->count(2)->create(['user_id' => $user->id, 'status' => 'up']);
+    Monitor::factory()->count(3)->create(['user_id' => $user->id, 'status' => 'down']);
+
+    $response = $this->actingAs($user)->getJson('/api/monitors?status=up');
+
+    $response->assertStatus(200)
+        ->assertJsonCount(2, 'data');
+});
+
+it('sorts monitors by name ascending', function () {
+    $user = authUser();
+
+    Monitor::factory()->create(['user_id' => $user->id, 'name' => 'Zebra Site']);
+    Monitor::factory()->create(['user_id' => $user->id, 'name' => 'Apple Site']);
+    Monitor::factory()->create(['user_id' => $user->id, 'name' => 'Mango Site']);
+
+    $response = $this->actingAs($user)->getJson('/api/monitors?sort=name&direction=asc');
+
+    $data = $response->json('data');
+
+    expect($data[0]['name'])->toBe('Apple Site');
+    expect($data[1]['name'])->toBe('Mango Site');
+    expect($data[2]['name'])->toBe('Zebra Site');
+});
+
+it('searches monitors by name', function () {
+    $user = authUser();
+
+    Monitor::factory()->create(['user_id' => $user->id, 'name' => 'My Blog']);
+    Monitor::factory()->create(['user_id' => $user->id, 'name' => 'My Store']);
+    Monitor::factory()->create(['user_id' => $user->id, 'name' => 'Company Site']);
+
+    $response = $this->actingAs($user)->getJson('/api/monitors?search=My');
+
+    $response->assertStatus(200)
+        ->assertJsonCount(2, 'data');
+});
+
+// ─────────────────────────────────────────────
+// Dashboard
+// ─────────────────────────────────────────────
+
+it('returns dashboard summary for the authenticated user', function () {
+    $user = authUser();
+
+    Monitor::factory()->count(2)->create(['user_id' => $user->id, 'status' => 'up']);
+    Monitor::factory()->count(1)->create(['user_id' => $user->id, 'status' => 'down']);
+    Monitor::factory()->count(1)->create(['user_id' => $user->id, 'status' => 'degraded']);
+    Monitor::factory()->count(1)->create(['user_id' => $user->id, 'status' => 'paused']);
+
+    $response = $this->actingAs($user)->getJson('/api/dashboard');
+
+    $response->assertStatus(200)
+        ->assertJsonStructure([
+            'data' => [
+                'total',
+                'up',
+                'down',
+                'degraded',
+                'paused',
+                'overall_uptime_percentage',
+            ],
+        ])
+        ->assertJsonPath('data.total', 5)
+        ->assertJsonPath('data.up', 2)
+        ->assertJsonPath('data.down', 1)
+        ->assertJsonPath('data.degraded', 1)
+        ->assertJsonPath('data.paused', 1);
+});
+
+it('returns 401 for dashboard if unauthenticated', function () {
+    $response = $this->getJson('/api/dashboard');
+
+    $response->assertStatus(401);
+});
