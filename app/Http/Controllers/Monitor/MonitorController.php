@@ -127,6 +127,26 @@ class MonitorController extends Controller
     }
 
     /**
+     * Get response time trends for a monitor.
+     */
+    public function responseTimes(Request $request, int $id): JsonResponse
+    {
+        $monitor = $this->monitorService->findForUser($request->user(), $id);
+
+        if (! $monitor) {
+            return response()->json(['message' => 'Monitor not found.'], 404);
+        }
+
+        $period = in_array($request->query('period'), ['24h', '7d', '30d'])
+            ? $request->query('period')
+            : '7d';
+
+        $trends = $this->monitorService->getResponseTimeTrends($monitor, $period);
+
+        return response()->json(['data' => $trends]);
+    }
+
+    /**
      * Get incident history for a monitor.
      */
     public function incidents(Request $request, int $id): JsonResponse

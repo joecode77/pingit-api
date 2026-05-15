@@ -31,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('monitors', MonitorController::class);
     Route::get('monitors/{id}/history', [MonitorController::class, 'history']);
     Route::get('monitors/{id}/incidents', [MonitorController::class, 'incidents']);
+    Route::get('monitors/{id}/response-times', [MonitorController::class, 'responseTimes']);
     Route::post('monitors/{id}/pause', [MonitorController::class, 'pause']);
     Route::post('monitors/{id}/resume', [MonitorController::class, 'resume']);
 });

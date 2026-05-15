@@ -128,4 +128,38 @@ class MonitorService
             ->orderBy('started_at', 'desc')
             ->get();
     }
+
+    /**
+     * Get response time trends for a monitor over a given period.
+     */
+    public function getResponseTimeTrends(Monitor $monitor, string $period = '7d'): array
+    {
+        $from = match($period) {
+            '24h'  => now()->subHours(24),
+            '30d'  => now()->subDays(30),
+            default => now()->subDays(7),
+        };
+
+        $checks = $monitor->checks()
+            ->where('is_up', true)
+            ->whereNotNull('response_time_ms')
+            ->where('checked_at', '>=', $from)
+            ->get();
+
+        if ($checks->isEmpty()) {
+            return [
+                'average_ms' => null,
+                'min_ms'     => null,
+                'max_ms'     => null,
+                'period'     => $period,
+            ];
+        }
+
+        return [
+            'average_ms' => round($checks->avg('response_time_ms'), 2),
+            'min_ms'     => $checks->min('response_time_ms'),
+            'max_ms'     => $checks->max('response_time_ms'),
+            'period'     => $period,
+        ];
+    }
 }

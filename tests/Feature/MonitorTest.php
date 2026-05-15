@@ -556,3 +556,71 @@ it('returns 404 for incidents if monitor belongs to another user', function () {
     $response->assertStatus(404)
         ->assertJson(['message' => 'Monitor not found.']);
 });
+
+// ─────────────────────────────────────────────
+// Response Time Trends
+// ─────────────────────────────────────────────
+
+it('returns response time trends for a monitor', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    \App\Models\MonitorCheck::factory()->count(10)->create([
+        'monitor_id'       => $monitor->id,
+        'is_up'            => true,
+        'response_time_ms' => 500,
+        'checked_at'       => now()->subDays(3),
+    ]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/response-times?period=7d");
+
+    $response->assertStatus(200)
+        ->assertJsonStructure([
+            'data' => [
+                'average_ms',
+                'min_ms',
+                'max_ms',
+                'period',
+            ],
+        ]);
+
+    $data = $response->json('data');
+
+    expect($data['average_ms'])->toBe(500)
+        ->and($data['min_ms'])->toBe(500)
+        ->and($data['max_ms'])->toBe(500)
+        ->and($data['period'])->toBe('7d');
+});
+
+it('returns null trends when no successful checks exist', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/response-times?period=7d");
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.average_ms', null)
+        ->assertJsonPath('data.min_ms', null)
+        ->assertJsonPath('data.max_ms', null);
+});
+
+it('defaults to 7d period if none specified', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/response-times");
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.period', '7d');
+});
+
+it('returns 404 for response times if monitor belongs to another user', function () {
+    $userOne = authUser();
+    $userTwo = User::factory()->create();
+    $monitor = Monitor::factory()->create(['user_id' => $userTwo->id]);
+
+    $response = $this->actingAs($userOne)->getJson("/api/monitors/{$monitor->id}/response-times");
+
+    $response->assertStatus(404)
+        ->assertJson(['message' => 'Monitor not found.']);
+});
