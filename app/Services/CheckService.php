@@ -4,8 +4,12 @@
 
 namespace App\Services;
 
+use App\Mail\MonitorDegradedMail;
+use App\Mail\MonitorDownMail;
+use App\Mail\MonitorRecoveredMail;
 use App\Models\Monitor;
 use App\Models\MonitorCheck;
+use Illuminate\Support\Facades\Mail;
 
 class CheckService
 {
@@ -24,20 +28,33 @@ class CheckService
      */
     public function handleSuccessfulCheck(Monitor $monitor, int $responseTimeMs): void
     {
+        $previousStatus = $monitor->status;
+
         $monitor->consecutive_failures = 0;
 
         if (
             $monitor->response_time_threshold_ms !== null &&
             $responseTimeMs >= $monitor->response_time_threshold_ms
         ) {
-            $monitor->status = 'degraded';
+            $newStatus = 'degraded';
         } else {
-            $monitor->status = 'up';
+            $newStatus = 'up';
         }
 
+        $monitor->status          = $newStatus;
         $monitor->last_checked_at = now();
         $monitor->next_check_at   = now()->addMinutes($monitor->check_interval);
         $monitor->save();
+
+        // Send recovery notification if monitor was previously down
+        if ($previousStatus === 'down' && $newStatus === 'up') {
+            Mail::to($monitor->user->email)->send(new MonitorRecoveredMail($monitor));
+        }
+
+        // Send degraded notification if monitor just became degraded
+        if ($previousStatus !== 'degraded' && $newStatus === 'degraded') {
+            Mail::to($monitor->user->email)->send(new MonitorDegradedMail($monitor));
+        }
     }
 
     /**
@@ -46,15 +63,22 @@ class CheckService
      */
     public function handleFailedCheck(Monitor $monitor): void
     {
+        $previousStatus = $monitor->status;
+
         $monitor->consecutive_failures++;
         $monitor->last_checked_at = now();
         $monitor->next_check_at   = now()->addMinutes($monitor->check_interval);
 
         if (
             $monitor->consecutive_failures >= $monitor->threshold &&
-            $monitor->status !== 'down'
+            $previousStatus !== 'down'
         ) {
             $monitor->status = 'down';
+            $monitor->save();
+
+            Mail::to($monitor->user->email)->send(new MonitorDownMail($monitor));
+
+            return;
         }
 
         $monitor->save();
