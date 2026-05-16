@@ -624,3 +624,42 @@ it('returns 404 for response times if monitor belongs to another user', function
     $response->assertStatus(404)
         ->assertJson(['message' => 'Monitor not found.']);
 });
+
+// ─────────────────────────────────────────────
+// CSV Export
+// ─────────────────────────────────────────────
+
+it('exports check history as a csv file', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    \App\Models\MonitorCheck::factory()->count(5)->create([
+        'monitor_id' => $monitor->id,
+    ]);
+
+    $response = $this->actingAs($user)->get("/api/monitors/{$monitor->id}/history/export");
+
+    $response->assertStatus(200);
+    $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+    $response->assertHeader('Content-Disposition', "attachment; filename=monitor-{$monitor->id}-history.csv");
+});
+
+it('returns 404 for csv export if monitor does not exist', function () {
+    $user = authUser();
+
+    $response = $this->actingAs($user)->getJson('/api/monitors/999/history/export');
+
+    $response->assertStatus(404)
+        ->assertJson(['message' => 'Monitor not found.']);
+});
+
+it('returns 404 for csv export if monitor belongs to another user', function () {
+    $userOne = authUser();
+    $userTwo = User::factory()->create();
+    $monitor = Monitor::factory()->create(['user_id' => $userTwo->id]);
+
+    $response = $this->actingAs($userOne)->getJson("/api/monitors/{$monitor->id}/history/export");
+
+    $response->assertStatus(404)
+        ->assertJson(['message' => 'Monitor not found.']);
+});

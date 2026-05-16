@@ -128,6 +128,42 @@ class MonitorController extends Controller
     }
 
     /**
+     * Export check history as a CSV file.
+     */
+    public function exportHistory(Request $request, int $id): \Symfony\Component\HttpFoundation\StreamedResponse|JsonResponse
+    {
+        $monitor = $this->monitorService->findForUser($request->user(), $id);
+
+        if (! $monitor) {
+            return response()->json(['message' => 'Monitor not found.'], 404);
+        }
+
+        $checks   = $this->monitorService->getHistoryForExport($monitor);
+        $filename = "monitor-{$monitor->id}-history.csv";
+
+        return response()->streamDownload(function () use ($checks) {
+            $handle = fopen('php://output', 'w');
+
+            // CSV headers
+            fputcsv($handle, ['ID', 'Status Code', 'Response Time (ms)', 'Is Up', 'Checked At']);
+
+            foreach ($checks as $check) {
+                fputcsv($handle, [
+                    $check->id,
+                    $check->status_code,
+                    $check->response_time_ms,
+                    $check->is_up ? 'true' : 'false',
+                    $check->checked_at->toIso8601String(),
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
      * Get response time trends for a monitor.
      */
     public function responseTimes(Request $request, int $id): JsonResponse

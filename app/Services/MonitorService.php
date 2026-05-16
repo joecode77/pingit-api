@@ -137,6 +137,16 @@ class MonitorService
     }
 
     /**
+     * Get all check history for CSV export.
+     */
+    public function getHistoryForExport(Monitor $monitor): \Illuminate\Database\Eloquent\Collection
+    {
+        return $monitor->checks()
+            ->orderBy('checked_at', 'desc')
+            ->get();
+    }
+
+    /**
      * Get response time trends for a monitor over a given period.
      */
     public function getResponseTimeTrends(Monitor $monitor, string $period = '7d'): array
