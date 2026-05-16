@@ -15,7 +15,27 @@ class DashboardController extends Controller
     }
 
     /**
-     * Return summary stats for the authenticated user.
+     * @OA\Get(
+     *     path="/api/dashboard",
+     *     tags={"Dashboard"},
+     *     summary="Get summary stats for the authenticated user",
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Dashboard summary",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="total", type="integer", example=10),
+     *                 @OA\Property(property="up", type="integer", example=7),
+     *                 @OA\Property(property="down", type="integer", example=1),
+     *                 @OA\Property(property="degraded", type="integer", example=1),
+     *                 @OA\Property(property="paused", type="integer", example=1),
+     *                 @OA\Property(property="overall_uptime_percentage", type="number", example=98.5)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function index(Request $request): JsonResponse
     {

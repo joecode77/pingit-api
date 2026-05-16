@@ -19,7 +19,14 @@ class TagController extends Controller
     }
 
     /**
-     * List all tags for the authenticated user.
+     * @OA\Get(
+     *     path="/api/tags",
+     *     tags={"Tags"},
+     *     summary="List all tags for the authenticated user",
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(response=200, description="List of tags"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function index(Request $request): JsonResponse
     {
@@ -31,7 +38,22 @@ class TagController extends Controller
     }
 
     /**
-     * Create a new tag.
+     * @OA\Post(
+     *     path="/api/tags",
+     *     tags={"Tags"},
+     *     summary="Create a new tag",
+     *     security={{"sanctum":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name"},
+     *             @OA\Property(property="name", type="string", example="production")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Tag created"),
+     *     @OA\Response(response=422, description="Validation error"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function store(CreateTagRequest $request): JsonResponse
     {
@@ -45,7 +67,16 @@ class TagController extends Controller
     }
 
     /**
-     * Delete a tag.
+     * @OA\Delete(
+     *     path="/api/tags/{id}",
+     *     tags={"Tags"},
+     *     summary="Delete a tag",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Tag deleted"),
+     *     @OA\Response(response=404, description="Tag not found"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function destroy(Request $request, int $id): JsonResponse
     {
@@ -61,7 +92,23 @@ class TagController extends Controller
     }
 
     /**
-     * Attach a tag to a monitor.
+     * @OA\Post(
+     *     path="/api/monitors/{monitorId}/tags",
+     *     tags={"Tags"},
+     *     summary="Attach a tag to a monitor",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="monitorId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"tag_id"},
+     *             @OA\Property(property="tag_id", type="integer", example=1)
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Tag attached successfully"),
+     *     @OA\Response(response=404, description="Monitor or tag not found"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function attach(Request $request, int $monitorId): JsonResponse
     {
@@ -83,7 +130,17 @@ class TagController extends Controller
     }
 
     /**
-     * Detach a tag from a monitor.
+     * @OA\Delete(
+     *     path="/api/monitors/{monitorId}/tags/{tagId}",
+     *     tags={"Tags"},
+     *     summary="Detach a tag from a monitor",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="monitorId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="tagId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Tag detached successfully"),
+     *     @OA\Response(response=404, description="Monitor not found"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function detach(Request $request, int $monitorId, int $tagId): JsonResponse
     {

@@ -19,7 +19,16 @@ class NotificationChannelController extends Controller
     }
 
     /**
-     * List all notification channels for a monitor.
+     * @OA\Get(
+     *     path="/api/monitors/{monitorId}/channels",
+     *     tags={"Notification Channels"},
+     *     summary="List all notification channels for a monitor",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="monitorId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="List of notification channels"),
+     *     @OA\Response(response=404, description="Monitor not found"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function index(Request $request, int $monitorId): JsonResponse
     {
@@ -37,7 +46,28 @@ class NotificationChannelController extends Controller
     }
 
     /**
-     * Add a new notification channel to a monitor.
+     * @OA\Post(
+     *     path="/api/monitors/{monitorId}/channels",
+     *     tags={"Notification Channels"},
+     *     summary="Add a notification channel to a monitor",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="monitorId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"type","value"},
+     *             @OA\Property(property="type", type="string", enum={"email","webhook"}, example="email"),
+     *             @OA\Property(property="value", type="string", example="alerts@example.com"),
+     *             @OA\Property(property="notify_on_down", type="boolean", example=true),
+     *             @OA\Property(property="notify_on_recovery", type="boolean", example=true),
+     *             @OA\Property(property="notify_on_degraded", type="boolean", example=false)
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Notification channel created"),
+     *     @OA\Response(response=422, description="Validation error"),
+     *     @OA\Response(response=404, description="Monitor not found"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function store(CreateNotificationChannelRequest $request, int $monitorId): JsonResponse
     {
@@ -61,7 +91,17 @@ class NotificationChannelController extends Controller
     }
 
     /**
-     * Delete a notification channel.
+     * @OA\Delete(
+     *     path="/api/monitors/{monitorId}/channels/{channelId}",
+     *     tags={"Notification Channels"},
+     *     summary="Delete a notification channel",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="monitorId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="channelId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Notification channel deleted"),
+     *     @OA\Response(response=404, description="Monitor or channel not found"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function destroy(Request $request, int $monitorId, int $channelId): JsonResponse
     {
