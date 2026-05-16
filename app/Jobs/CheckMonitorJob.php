@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Models\Monitor;
 use App\Services\CheckService;
+use App\Services\SslService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Http\Client\ConnectionException;
@@ -37,7 +38,7 @@ class CheckMonitorJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(CheckService $checkService): void
+    public function handle(CheckService $checkService, SslService $sslService): void
     {
         // Bail out if the monitor was deleted while the job was queued
         if ($this->monitor->trashed()) {
@@ -78,6 +79,9 @@ class CheckMonitorJob implements ShouldQueue
         } else {
             $checkService->handleFailedCheck($this->monitor);
         }
+
+        // Check SSL certificate
+        $sslService->checkSsl($this->monitor);
 
         // Release the lock
         $this->monitor->update(['is_checking' => false]);

@@ -25,6 +25,12 @@ class Monitor extends Model
         'http_method',
         'follow_redirects',
         'custom_headers',
+        'ssl_check_enabled',
+        'ssl_valid',
+        'ssl_expires_at',
+        'ssl_days_remaining',
+        'ssl_alert_days_before',
+        'ssl_alert_sent',
         'status',
         'is_checking',
         'consecutive_failures',
@@ -39,6 +45,10 @@ class Monitor extends Model
             'follow_redirects'           => 'boolean',
             'is_checking'                => 'boolean',
             'custom_headers'             => 'array',
+            'ssl_check_enabled'          => 'boolean',
+            'ssl_valid'                  => 'boolean',
+            'ssl_expires_at'             => 'datetime',
+            'ssl_alert_sent'             => 'boolean',
             'last_checked_at'            => 'datetime',
             'next_check_at'              => 'datetime',
             'last_notified_at'           => 'datetime',
@@ -46,6 +56,8 @@ class Monitor extends Model
             'check_interval'             => 'integer',
             'threshold'                  => 'integer',
             'response_time_threshold_ms' => 'integer',
+            'ssl_days_remaining'         => 'integer',
+            'ssl_alert_days_before'      => 'integer',
         ];
     }
 
