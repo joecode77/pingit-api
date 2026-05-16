@@ -1,58 +1,322 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Pingit API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A full-stack uptime monitoring system built with Laravel 13.x and PHP 8.4+
 
-## About Laravel
+Pingit monitors your URLs, detects outages, tracks performance, and sends notifications the moment something goes wrong.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Table of Contents
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Running the Application](#running-the-application)
+- [Running Tests](#running-tests)
+- [API Documentation](#api-documentation)
+- [Architecture](#architecture)
+- [Design Decisions](#design-decisions)
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Features
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- **URL Monitoring** — Register URLs and check them at configurable intervals (1–60 minutes)
+- **Status Detection** — Tracks `pending`, `up`, `degraded`, and `down` states
+- **Failure Threshold** — Only marks a site as down after N consecutive failures
+- **Degraded Detection** — Flags sites that respond slowly but haven't gone down
+- **Incident Grouping** — Consecutive failures grouped into incidents with duration tracking
+- **Email Notifications** — Alerts on down, recovery, and degraded events via Brevo
+- **Notification Cooldowns** — Prevents email spam during flapping sites
+- **Webhook Support** — Push status change events to external systems (Slack, PagerDuty, etc.)
+- **Multiple Notification Channels** — Add multiple email addresses or webhooks per monitor
+- **SSL Certificate Monitoring** — Tracks expiry and alerts before certificates expire
+- **DNS Resolution Tracking** — Measures DNS resolution time separately from response time
+- **Response Time Trends** — Average, min, and max response times over 24h, 7d, or 30d
+- **Uptime Percentage** — Calculated per monitor from check history
+- **Dashboard Summary** — Overall stats across all monitors
+- **Tags** — Organise monitors into groups
+- **Pause/Resume** — Temporarily stop monitoring without losing history
+- **Check History** — Full paginated history of every check with CSV export
+- **Filter, Sort & Search** — Query monitors by status, tag, name, or URL
+- **Authentication** — Token-based auth via Laravel Sanctum
+- **API Documentation** — Interactive Swagger UI at `/api/documentation`
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+---
 
-## Agentic Development
+## Tech Stack
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+| Layer              | Technology           |
+| ------------------ | -------------------- |
+| Language           | PHP 8.4+             |
+| Framework          | Laravel 13.x         |
+| Database           | PostgreSQL           |
+| Authentication     | Laravel Sanctum      |
+| Queue Driver       | Database             |
+| Mail (Development) | Mailtrap             |
+| Mail (Production)  | Brevo                |
+| Testing            | Pest                 |
+| API Docs           | Swagger (l5-swagger) |
+
+---
+
+## Requirements
+
+- PHP 8.4+
+- Composer
+- PostgreSQL
+- A Mailtrap account (for development mail)
+
+---
+
+## Installation
+
+### 1. Clone the repository
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone https://github.com/joecode77/pingit-api.git
+cd pingit-api
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 2. Install dependencies
 
-## Contributing
+```bash
+composer install
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 3. Copy the environment file
 
-## Code of Conduct
+```bash
+cp .env.example .env
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 4. Generate application key
 
-## Security Vulnerabilities
+```bash
+php artisan key:generate
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 5. Configure the database
 
-## License
+Create a PostgreSQL database named `pingit`, then update your `.env`:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=pingit
+DB_USERNAME=your_postgres_username
+DB_PASSWORD=your_postgres_password
+```
+
+### 6. Configure mail (Mailtrap for development)
+
+Sign up at [mailtrap.io](https://mailtrap.io) and copy your SMTP credentials into `.env`:
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=your_mailtrap_username
+MAIL_PASSWORD=your_mailtrap_password
+MAIL_FROM_ADDRESS=noreply@pingit.live
+MAIL_FROM_NAME="Pingit"
+```
+
+### 7. Run migrations
+
+```bash
+php artisan migrate
+```
+
+### 8. Generate API documentation
+
+```bash
+php artisan l5-swagger:generate
+```
+
+---
+
+## Running the Application
+
+### Start the development server
+
+```bash
+php artisan serve
+```
+
+### Start the queue worker (required for URL checks)
+
+```bash
+php artisan queue:work
+```
+
+### Start the scheduler (required for dispatching checks)
+
+```bash
+php artisan schedule:work
+```
+
+> **Note:** All three processes must be running for the full monitoring system to work. In production, these would be managed by a process supervisor like Supervisor.
+
+---
+
+## Running Tests
+
+The test suite uses Pest with an in-memory SQLite database so no database setup is required.
+
+```bash
+php artisan test
+```
+
+To run a specific test file:
+
+```bash
+php artisan test --filter=MonitorTest
+```
+
+### Test Structure
+
+```
+tests/
+├── Feature/
+│   ├── AuthTest.php                  # Registration, login, logout
+│   ├── MonitorTest.php               # Monitor CRUD, history, incidents, tags
+│   ├── CheckMonitorJobTest.php       # Background job and status transitions
+│   ├── NotificationTest.php          # Email notification logic
+│   └── NotificationChannelTest.php   # Webhook and channel management
+└── Unit/
+    └── CheckServiceTest.php          # Core business logic unit tests
+```
+
+---
+
+## API Documentation
+
+Interactive Swagger documentation is available at:
+
+```
+http://localhost:8000/api/documentation
+```
+
+### Authentication
+
+All protected endpoints require a Bearer token in the `Authorization` header:
+
+```
+Authorization: Bearer {your_token}
+```
+
+Obtain a token by registering or logging in via the Auth endpoints.
+
+### Endpoints Overview
+
+| Method | Endpoint                                  | Description                 |
+| ------ | ----------------------------------------- | --------------------------- |
+| POST   | `/api/auth/register`                      | Register a new user         |
+| POST   | `/api/auth/login`                         | Login and receive token     |
+| POST   | `/api/auth/logout`                        | Logout and revoke token     |
+| GET    | `/api/monitors`                           | List all monitors           |
+| POST   | `/api/monitors`                           | Create a monitor            |
+| GET    | `/api/monitors/{id}`                      | Get a single monitor        |
+| PUT    | `/api/monitors/{id}`                      | Update a monitor            |
+| DELETE | `/api/monitors/{id}`                      | Delete a monitor            |
+| POST   | `/api/monitors/{id}/pause`                | Pause a monitor             |
+| POST   | `/api/monitors/{id}/resume`               | Resume a monitor            |
+| GET    | `/api/monitors/{id}/history`              | Check history (paginated)   |
+| GET    | `/api/monitors/{id}/history/export`       | Export history as CSV       |
+| GET    | `/api/monitors/{id}/incidents`            | Incident history            |
+| GET    | `/api/monitors/{id}/response-times`       | Response time trends        |
+| POST   | `/api/monitors/{id}/tags`                 | Attach a tag                |
+| DELETE | `/api/monitors/{id}/tags/{tagId}`         | Detach a tag                |
+| GET    | `/api/monitors/{id}/channels`             | List notification channels  |
+| POST   | `/api/monitors/{id}/channels`             | Add notification channel    |
+| DELETE | `/api/monitors/{id}/channels/{channelId}` | Delete notification channel |
+| GET    | `/api/dashboard`                          | Dashboard summary           |
+| GET    | `/api/tags`                               | List tags                   |
+| POST   | `/api/tags`                               | Create a tag                |
+| DELETE | `/api/tags/{id}`                          | Delete a tag                |
+
+---
+
+## Architecture
+
+### Directory Structure
+
+```
+app/
+├── Console/Commands/
+│   └── DispatchMonitorChecks.php    # Scheduled command to dispatch check jobs
+├── Http/
+│   ├── Controllers/
+│   │   ├── Auth/AuthController.php
+│   │   ├── Monitor/MonitorController.php
+│   │   ├── NotificationChannel/NotificationChannelController.php
+│   │   ├── Tag/TagController.php
+│   │   └── DashboardController.php
+│   ├── Requests/                    # Form request validation classes
+│   └── Resources/                   # API response transformation classes
+├── Jobs/
+│   └── CheckMonitorJob.php          # Queued job that performs each URL check
+├── Mail/                            # Mailable classes for notifications
+├── Models/                          # Eloquent models
+└── Services/
+    ├── AuthService.php
+    ├── CheckService.php             # Core check logic and status transitions
+    ├── DashboardService.php
+    ├── MonitorService.php
+    └── SslService.php               # SSL certificate inspection
+```
+
+### Request Lifecycle
+
+```
+Scheduler (every minute)
+  → DispatchMonitorChecks command
+    → Queries monitors due for checking
+      → Dispatches CheckMonitorJob per monitor
+        → Makes HTTP request
+        → Measures DNS resolution time
+        → Records check result
+        → Updates monitor status
+        → Opens/closes incidents
+        → Checks SSL certificate
+        → Sends notifications (email + webhooks)
+```
+
+---
+
+## Design Decisions
+
+### Why PostgreSQL?
+
+PostgreSQL offers better support for JSON columns, more robust indexing, and is the preferred choice for production Laravel applications.
+
+### Why Queues for URL Checking?
+
+Each monitor check is dispatched as a queued job so checks run concurrently. A slow or failing check on one monitor does not block others. The `is_checking` flag prevents overlapping jobs for the same monitor.
+
+### Why Per-Monitor `next_check_at`?
+
+Instead of a fixed cron per interval, each monitor has its own `next_check_at` timestamp. The scheduler runs every minute and dispatches jobs for any monitor whose `next_check_at` is in the past. This allows truly independent intervals per monitor.
+
+### Why Services Instead of Fat Controllers?
+
+Controllers handle HTTP input/output only. All business logic lives in service classes making it testable in isolation and keeping controllers thin and readable.
+
+### Why Pest over PHPUnit?
+
+Pest provides a cleaner, more expressive syntax with less boilerplate. It is built on top of PHPUnit so nothing is lost — just cleaner tests.
+
+### Why `Mail::fake()` in Tests?
+
+No real emails are sent during tests. `Mail::fake()` intercepts all outgoing mail and allows assertions about what would have been sent, without any external service dependency.
+
+### Why Soft Deletes on Monitors?
+
+Deleting a monitor soft-deletes it so the check history is preserved in the database. This prevents data loss and allows potential future restoration.
+
+### Why Notification Cooldowns?
+
+Without cooldowns, a flapping site would generate many emails in a short period. The cooldown period (`check_interval × threshold` minutes) ensures notifications are meaningful and not excessive.
