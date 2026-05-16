@@ -50,6 +50,13 @@ class MonitorService
             });
         }
 
+        // Filter by tag
+        if (! empty($filters['tag'])) {
+            $query->whereHas('tags', function ($q) use ($filters) {
+                $q->where('name', $filters['tag']);
+            });
+        }
+
         // Sort
         $sortColumn    = in_array($filters['sort'] ?? '', ['name', 'created_at', 'last_checked_at']) ? $filters['sort'] : 'created_at';
         $sortDirection = ($filters['direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';

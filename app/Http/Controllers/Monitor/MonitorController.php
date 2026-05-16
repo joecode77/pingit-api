@@ -31,6 +31,7 @@ class MonitorController extends Controller
             'search',
             'sort',
             'direction',
+            'tag',
         ]));
 
         return MonitorResource::collection($monitors);

@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Monitor\MonitorController;
 use App\Http\Controllers\NotificationChannel\NotificationChannelController;
+use App\Http\Controllers\Tag\TagController;
 use Illuminate\Support\Facades\Route;
 
 // ─────────────────────────────────────────────
@@ -40,4 +41,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('monitors/{monitorId}/channels', [NotificationChannelController::class, 'index']);
     Route::post('monitors/{monitorId}/channels', [NotificationChannelController::class, 'store']);
     Route::delete('monitors/{monitorId}/channels/{channelId}', [NotificationChannelController::class, 'destroy']);
+
+    // Tags
+    Route::get('/tags', [TagController::class, 'index']);
+    Route::post('/tags', [TagController::class, 'store']);
+    Route::delete('/tags/{id}', [TagController::class, 'destroy']);
+    Route::post('monitors/{monitorId}/tags', [TagController::class, 'attach']);
+    Route::delete('monitors/{monitorId}/tags/{tagId}', [TagController::class, 'detach']);
 });
