@@ -56,9 +56,7 @@ class CheckMonitorJob implements ShouldQueue
             $host = parse_url($this->monitor->url, PHP_URL_HOST);
 
             // Measure DNS resolution time
-            $dnsStart        = microtime(true);
-            gethostbyname($host);
-            $dnsResolutionMs = (int) round((microtime(true) - $dnsStart) * 1000);
+            $dnsResolutionMs = $checkService->resolveDns($host);
 
             $startTime = microtime(true);
 

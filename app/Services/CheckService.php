@@ -40,6 +40,23 @@ class CheckService
     }
 
     /**
+     * Measure DNS resolution time for a host in milliseconds.
+     * Returns null if the host cannot be resolved.
+     */
+    public function resolveDns(string $host): ?int
+    {
+        $start = microtime(true);
+        $ip    = gethostbyname($host);
+
+        // gethostbyname returns the host unchanged if resolution fails
+        if ($ip === $host) {
+            return null;
+        }
+
+        return (int) round((microtime(true) - $start) * 1000);
+    }
+
+    /**
      * Determine if a status code means the site is up.
      * 2xx and 3xx status codes are considered up.
      */

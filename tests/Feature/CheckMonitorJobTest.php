@@ -6,10 +6,22 @@ use App\Jobs\CheckMonitorJob;
 use App\Models\Monitor;
 use App\Models\MonitorCheck;
 use App\Models\User;
+use App\Services\SslService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
+
+// Mock SslService and DNS resolution for all tests in this file
+beforeEach(function () {
+    $sslMock = Mockery::mock(SslService::class);
+    $sslMock->shouldReceive('checkSsl')->andReturn(null);
+    app()->instance(SslService::class, $sslMock);
+
+    $checkServiceMock = Mockery::mock(\App\Services\CheckService::class)->makePartial();
+    $checkServiceMock->shouldReceive('resolveDns')->andReturn(5);
+    app()->instance(\App\Services\CheckService::class, $checkServiceMock);
+});
 
 // ─────────────────────────────────────────────
 // Helpers
