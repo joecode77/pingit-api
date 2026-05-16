@@ -50,8 +50,16 @@ class CheckMonitorJob implements ShouldQueue
 
         $statusCode      = 0;
         $responseTimeMs  = null;
+        $dnsResolutionMs = null;
 
         try {
+            $host = parse_url($this->monitor->url, PHP_URL_HOST);
+
+            // Measure DNS resolution time
+            $dnsStart        = microtime(true);
+            gethostbyname($host);
+            $dnsResolutionMs = (int) round((microtime(true) - $dnsStart) * 1000);
+
             $startTime = microtime(true);
 
             $response = Http::timeout(30)
@@ -71,7 +79,7 @@ class CheckMonitorJob implements ShouldQueue
         }
 
         // Record the check result
-        $checkService->recordCheck($this->monitor, $statusCode, $responseTimeMs);
+        $checkService->recordCheck($this->monitor, $statusCode, $responseTimeMs, $dnsResolutionMs);
 
         // Update monitor status based on result
         if ($checkService->isUp($statusCode)) {

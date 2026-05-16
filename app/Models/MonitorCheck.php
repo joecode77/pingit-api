@@ -18,6 +18,7 @@ class MonitorCheck extends Model
         'monitor_id',
         'status_code',
         'response_time_ms',
+        'dns_resolution_ms',
         'is_up',
         'checked_at',
     ];
@@ -25,10 +26,11 @@ class MonitorCheck extends Model
     protected function casts(): array
     {
         return [
-            'is_up'            => 'boolean',
-            'status_code'      => 'integer',
-            'response_time_ms' => 'integer',
-            'checked_at'       => 'datetime',
+            'is_up'              => 'boolean',
+            'status_code'        => 'integer',
+            'response_time_ms'   => 'integer',
+            'dns_resolution_ms'  => 'integer',
+            'checked_at'         => 'datetime',
         ];
     }
 

@@ -130,14 +130,15 @@ class CheckService
     /**
      * Record a check result in the database.
      */
-    public function recordCheck(Monitor $monitor, int $statusCode, ?int $responseTimeMs): MonitorCheck
+    public function recordCheck(Monitor $monitor, int $statusCode, ?int $responseTimeMs, ?int $dnsResolutionMs = null): MonitorCheck
     {
         return MonitorCheck::create([
-            'monitor_id'       => $monitor->id,
-            'status_code'      => $statusCode,
-            'response_time_ms' => $responseTimeMs,
-            'is_up'            => $this->isUp($statusCode),
-            'checked_at'       => now(),
+            'monitor_id'        => $monitor->id,
+            'status_code'       => $statusCode,
+            'response_time_ms'  => $responseTimeMs,
+            'dns_resolution_ms' => $dnsResolutionMs,
+            'is_up'             => $this->isUp($statusCode),
+            'checked_at'        => now(),
         ]);
     }
 
