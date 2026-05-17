@@ -347,4 +347,31 @@ class MonitorController extends Controller
 
         return response()->json(['data' => $trends]);
     }
+
+    /**
+     * @OA\Get(
+     *     path="/api/monitors/{id}/daily-stats",
+     *     tags={"Monitors"},
+     *     summary="Get aggregated daily stats for a monitor",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="days", in="query", description="Number of days (default: 30, max: 90)", @OA\Schema(type="integer", default=30)),
+     *     @OA\Response(response=200, description="Daily stats"),
+     *     @OA\Response(response=404, description="Monitor not found"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
+    public function dailyStats(Request $request, int $id): JsonResponse
+    {
+        $monitor = $this->monitorService->findForUser($request->user(), $id);
+
+        if (! $monitor) {
+            return response()->json(['message' => 'Monitor not found.'], 404);
+        }
+
+        $days  = min((int) $request->query('days', 30), 90);
+        $stats = $this->monitorService->getDailyStats($monitor, $days);
+
+        return response()->json(['data' => $stats]);
+    }
 }

@@ -37,6 +37,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('monitors/{id}/response-times', [MonitorController::class, 'responseTimes']);
     Route::post('monitors/{id}/pause', [MonitorController::class, 'pause']);
     Route::post('monitors/{id}/resume', [MonitorController::class, 'resume']);
+    Route::get('monitors/{id}/daily-stats', [MonitorController::class, 'dailyStats']);
 
     // Notification Channels
     Route::get('monitors/{monitorId}/channels', [NotificationChannelController::class, 'index']);

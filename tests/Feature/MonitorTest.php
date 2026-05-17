@@ -4,6 +4,7 @@
 
 use App\Models\Monitor;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -659,6 +660,236 @@ it('returns 404 for csv export if monitor belongs to another user', function () 
     $monitor = Monitor::factory()->create(['user_id' => $userTwo->id]);
 
     $response = $this->actingAs($userOne)->getJson("/api/monitors/{$monitor->id}/history/export");
+
+    $response->assertStatus(404)
+        ->assertJson(['message' => 'Monitor not found.']);
+});
+
+// ─────────────────────────────────────────────
+// Daily Stats
+// ─────────────────────────────────────────────
+
+it('returns daily stats with correct structure', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    \App\Models\MonitorCheck::factory()->count(5)->create([
+        'monitor_id'       => $monitor->id,
+        'is_up'            => true,
+        'response_time_ms' => 200,
+        'checked_at'       => now(),
+    ]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/daily-stats");
+
+    $response->assertStatus(200)
+        ->assertJsonStructure([
+            'data' => [
+                '*' => [
+                    'date',
+                    'total_checks',
+                    'successful_checks',
+                    'failed_checks',
+                    'uptime_percentage',
+                    'avg_response_ms',
+                    'min_response_ms',
+                    'max_response_ms',
+                ],
+            ],
+        ]);
+});
+
+it('returns 30 days by default', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/daily-stats");
+
+    $response->assertStatus(200)
+        ->assertJsonCount(30, 'data');
+});
+
+it('respects the days query parameter', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/daily-stats?days=7");
+
+    $response->assertStatus(200)
+        ->assertJsonCount(7, 'data');
+});
+
+it('caps days at 90', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/daily-stats?days=200");
+
+    $response->assertStatus(200)
+        ->assertJsonCount(90, 'data');
+});
+
+it('correctly counts successful and failed checks per day', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    $today = Carbon::today();
+
+    \App\Models\MonitorCheck::factory()->count(8)->create([
+        'monitor_id' => $monitor->id,
+        'is_up'      => true,
+        'checked_at' => $today,
+    ]);
+
+    \App\Models\MonitorCheck::factory()->count(2)->create([
+        'monitor_id' => $monitor->id,
+        'is_up'      => false,
+        'checked_at' => $today,
+    ]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/daily-stats?days=1");
+
+    $data = $response->json('data.0');
+
+    expect($data['total_checks'])->toBe(10)
+        ->and($data['successful_checks'])->toBe(8)
+        ->and($data['failed_checks'])->toBe(2)
+        ->and((float) $data['uptime_percentage'])->toBe(80.0);
+});
+
+it('correctly calculates avg min and max response times', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    $today = Carbon::today();
+
+    \App\Models\MonitorCheck::factory()->create([
+        'monitor_id'       => $monitor->id,
+        'is_up'            => true,
+        'response_time_ms' => 100,
+        'checked_at'       => $today,
+    ]);
+
+    \App\Models\MonitorCheck::factory()->create([
+        'monitor_id'       => $monitor->id,
+        'is_up'            => true,
+        'response_time_ms' => 200,
+        'checked_at'       => $today,
+    ]);
+
+    \App\Models\MonitorCheck::factory()->create([
+        'monitor_id'       => $monitor->id,
+        'is_up'            => true,
+        'response_time_ms' => 300,
+        'checked_at'       => $today,
+    ]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/daily-stats?days=1");
+
+    $data = $response->json('data.0');
+
+    expect((float) $data['avg_response_ms'])->toBe(200.0)
+        ->and($data['min_response_ms'])->toBe(100)
+        ->and($data['max_response_ms'])->toBe(300);
+});
+
+it('returns null response time metrics when no successful checks exist', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    \App\Models\MonitorCheck::factory()->create([
+        'monitor_id'       => $monitor->id,
+        'is_up'            => false,
+        'response_time_ms' => null,
+        'checked_at'       => Carbon::today(),
+    ]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/daily-stats?days=1");
+
+    $data = $response->json('data.0');
+
+    expect($data['avg_response_ms'])->toBeNull()
+        ->and($data['min_response_ms'])->toBeNull()
+        ->and($data['max_response_ms'])->toBeNull();
+});
+
+it('returns zero counts and null metrics for days with no checks', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/daily-stats?days=7");
+
+    $response->assertStatus(200);
+
+    foreach ($response->json('data') as $day) {
+        expect($day['total_checks'])->toBe(0)
+            ->and($day['successful_checks'])->toBe(0)
+            ->and($day['failed_checks'])->toBe(0)
+            ->and($day['uptime_percentage'])->toBeNull()
+            ->and($day['avg_response_ms'])->toBeNull();
+    }
+});
+
+it('returns dates in ascending order', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/daily-stats?days=7");
+
+    $dates  = collect($response->json('data'))->pluck('date')->toArray();
+    $sorted = $dates;
+    sort($sorted);
+
+    expect($dates)->toBe($sorted);
+});
+
+it('only counts checks within the requested date range', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    \App\Models\MonitorCheck::factory()->create([
+        'monitor_id' => $monitor->id,
+        'is_up'      => true,
+        'checked_at' => now()->subDays(3),
+    ]);
+
+    \App\Models\MonitorCheck::factory()->create([
+        'monitor_id' => $monitor->id,
+        'is_up'      => true,
+        'checked_at' => now()->subDays(40),
+    ]);
+
+    $response = $this->actingAs($user)->getJson("/api/monitors/{$monitor->id}/daily-stats?days=7");
+
+    $totalChecks = collect($response->json('data'))->sum('total_checks');
+
+    expect($totalChecks)->toBe(1);
+});
+
+it('returns 401 for daily stats if unauthenticated', function () {
+    $user    = authUser();
+    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->getJson("/api/monitors/{$monitor->id}/daily-stats");
+
+    $response->assertStatus(401);
+});
+
+it('returns 404 for daily stats if monitor does not exist', function () {
+    $user = authUser();
+
+    $response = $this->actingAs($user)->getJson('/api/monitors/999/daily-stats');
+
+    $response->assertStatus(404)
+        ->assertJson(['message' => 'Monitor not found.']);
+});
+
+it('returns 404 for daily stats if monitor belongs to another user', function () {
+    $userOne = authUser();
+    $userTwo = User::factory()->create();
+    $monitor = Monitor::factory()->create(['user_id' => $userTwo->id]);
+
+    $response = $this->actingAs($userOne)->getJson("/api/monitors/{$monitor->id}/daily-stats");
 
     $response->assertStatus(404)
         ->assertJson(['message' => 'Monitor not found.']);

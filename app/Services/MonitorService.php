@@ -109,7 +109,7 @@ class MonitorService
     public function resume(Monitor $monitor): Monitor
     {
         $monitor->update([
-            'status'       => 'pending',
+            'status'        => 'pending',
             'next_check_at' => now(),
         ]);
 
@@ -178,5 +178,58 @@ class MonitorService
             'max_ms'     => $checks->max('response_time_ms'),
             'period'     => $period,
         ];
+    }
+
+    /**
+     * Get aggregated daily stats for a monitor over a given number of days.
+     * Returns one entry per day with uptime counts and response time metrics.
+     * Days with no checks are included with zero counts and null metrics.
+     */
+    public function getDailyStats(Monitor $monitor, int $days = 30): array
+    {
+        $days = min($days, 90);
+
+        // Build a map of date => stats from the database in one query
+        $rows = $monitor->checks()
+            ->selectRaw("
+                DATE(checked_at) as date,
+                COUNT(*) as total_checks,
+                SUM(CASE WHEN is_up = true THEN 1 ELSE 0 END) as successful_checks,
+                SUM(CASE WHEN is_up = false THEN 1 ELSE 0 END) as failed_checks,
+                ROUND(AVG(CASE WHEN is_up = true AND response_time_ms IS NOT NULL THEN response_time_ms END), 2) as avg_response_ms,
+                MIN(CASE WHEN is_up = true AND response_time_ms IS NOT NULL THEN response_time_ms END) as min_response_ms,
+                MAX(CASE WHEN is_up = true AND response_time_ms IS NOT NULL THEN response_time_ms END) as max_response_ms
+            ")
+            ->where('checked_at', '>=', now()->subDays($days)->startOfDay())
+            ->groupByRaw('DATE(checked_at)')
+            ->get()
+            ->keyBy('date');
+
+        // Build the full date range, filling gaps with zero data
+        $result = [];
+
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = now()->subDays($i)->format('Y-m-d');
+            $row  = $rows->get($date);
+
+            $totalChecks      = $row ? (int) $row->total_checks : 0;
+            $successfulChecks = $row ? (int) $row->successful_checks : 0;
+            $failedChecks     = $row ? (int) $row->failed_checks : 0;
+
+            $result[] = [
+                'date'              => $date,
+                'total_checks'      => $totalChecks,
+                'successful_checks' => $successfulChecks,
+                'failed_checks'     => $failedChecks,
+                'uptime_percentage' => $totalChecks > 0
+                    ? round(($successfulChecks / $totalChecks) * 100, 2)
+                    : null,
+                'avg_response_ms'   => $row ? ($row->avg_response_ms !== null ? (float) $row->avg_response_ms : null) : null,
+                'min_response_ms'   => $row ? ($row->min_response_ms !== null ? (int) $row->min_response_ms : null) : null,
+                'max_response_ms'   => $row ? ($row->max_response_ms !== null ? (int) $row->max_response_ms : null) : null,
+            ];
+        }
+
+        return $result;
     }
 }
