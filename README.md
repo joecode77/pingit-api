@@ -19,7 +19,7 @@ Pingit monitors your URLs, detects outages, tracks performance, and sends notifi
 - Email: `demo@pingit.live`
 - Password: `password`
 
-> **Note:** The demo account is pre-loaded with seeded monitors using fictional URLs, so they will appear as `down`. To see the system monitoring real sites, register a new account and add your own URLs.
+> **Note:** The demo account is pre-loaded with real, well-known sites (Google, GitHub, Cloudflare, and others) so you can immediately explore live uptime data, response time charts, and incident history. To monitor your own sites, register a new account and add your own URLs.
 
 ---
 
@@ -180,14 +180,12 @@ To populate the application with a demo user and realistic monitor data:
 php artisan db:seed
 ```
 
-This creates a demo account with pre-configured monitors, 30 days of check history, incidents, tags, and notification channels so you can explore the full API without manually creating data.
+This creates a demo account pre-loaded with real, well-known sites (Google, GitHub, Cloudflare, Stripe, and others), 30 days of check history, incidents, tags, and notification channels so you can explore the full API without manually creating data.
 
 **Demo credentials:**
 
 - Email: `demo@pingit.live`
 - Password: `password`
-
-> **Note:** The seeded monitors use fictional URLs for demonstration purposes and will appear as `down` when the scheduler runs real checks. To monitor real sites, register a new account and add your own URLs.
 
 ### 10. Run the frontend (optional)
 
@@ -214,7 +212,7 @@ php artisan queue:work
 ### Start the scheduler (required for dispatching checks)
 
 ```bash
-php artisan schedule:work
+php artisan schedule:run
 ```
 
 > **Note:** All three processes must be running for the full monitoring system to work. In production, these would be managed by a process supervisor like Supervisor.
