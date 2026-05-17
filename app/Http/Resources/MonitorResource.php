@@ -37,6 +37,10 @@ class MonitorResource extends JsonResource
             'status'                     => $this->status,
             'last_checked_at'            => $this->last_checked_at?->toIso8601String(),
             'uptime_percentage'          => $checkService->uptimePercentage($this->resource),
+            'tags'                       => $this->tags->map(fn($tag) => [
+                'id'   => $tag->id,
+                'name' => $tag->name,
+            ]),
             'created_at'                 => $this->created_at->toIso8601String(),
         ];
     }
