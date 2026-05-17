@@ -34,13 +34,13 @@ class MonitorSeeder extends Seeder
         ]);
 
         // ─────────────────────────────────────────────
-        // Monitor definitions
+        // Monitor definitions — real URLs
         // ─────────────────────────────────────────────
 
         $monitorDefs = [
             [
-                'name'                       => 'Pingit Website',
-                'url'                        => 'https://pingit.live',
+                'name'                       => 'Google',
+                'url'                        => 'https://google.com',
                 'status'                     => 'up',
                 'check_interval'             => 5,
                 'threshold'                  => 3,
@@ -48,55 +48,55 @@ class MonitorSeeder extends Seeder
                 'http_method'                => 'GET',
                 'follow_redirects'           => true,
                 'consecutive_failures'       => 0,
-                'tags'                       => ['production', 'frontend', 'critical'],
-                'uptime_rate'                => 0.99,
-                'avg_response_ms'            => 220,
+                'tags'                       => ['production', 'critical'],
+                'uptime_rate'                => 0.999,
+                'avg_response_ms'            => 180,
             ],
             [
-                'name'                       => 'API Gateway',
-                'url'                        => 'https://api.pingit.live/health',
+                'name'                       => 'GitHub',
+                'url'                        => 'https://github.com',
                 'status'                     => 'up',
                 'check_interval'             => 5,
                 'threshold'                  => 3,
-                'response_time_threshold_ms' => 1500,
-                'http_method'                => 'GET',
-                'follow_redirects'           => false,
-                'consecutive_failures'       => 0,
-                'tags'                       => ['production', 'api', 'critical'],
-                'uptime_rate'                => 0.998,
-                'avg_response_ms'            => 140,
-            ],
-            [
-                'name'                       => 'Staging Environment',
-                'url'                        => 'https://staging.pingit.live',
-                'status'                     => 'up',
-                'check_interval'             => 10,
-                'threshold'                  => 2,
-                'response_time_threshold_ms' => 3000,
+                'response_time_threshold_ms' => 2000,
                 'http_method'                => 'GET',
                 'follow_redirects'           => true,
                 'consecutive_failures'       => 0,
-                'tags'                       => ['staging', 'frontend'],
-                'uptime_rate'                => 0.97,
-                'avg_response_ms'            => 380,
+                'tags'                       => ['production', 'api', 'critical'],
+                'uptime_rate'                => 0.998,
+                'avg_response_ms'            => 220,
             ],
             [
-                'name'                       => 'Auth Service',
-                'url'                        => 'https://auth.pingit.live/ping',
+                'name'                       => 'Cloudflare',
+                'url'                        => 'https://cloudflare.com',
+                'status'                     => 'up',
+                'check_interval'             => 10,
+                'threshold'                  => 3,
+                'response_time_threshold_ms' => 1500,
+                'http_method'                => 'GET',
+                'follow_redirects'           => true,
+                'consecutive_failures'       => 0,
+                'tags'                       => ['production', 'frontend'],
+                'uptime_rate'                => 0.9995,
+                'avg_response_ms'            => 90,
+            ],
+            [
+                'name'                       => 'Stripe',
+                'url'                        => 'https://stripe.com',
                 'status'                     => 'degraded',
                 'check_interval'             => 5,
                 'threshold'                  => 3,
                 'response_time_threshold_ms' => 800,
-                'http_method'                => 'HEAD',
-                'follow_redirects'           => false,
+                'http_method'                => 'GET',
+                'follow_redirects'           => true,
                 'consecutive_failures'       => 0,
-                'tags'                       => ['production', 'api'],
+                'tags'                       => ['production', 'api', 'critical'],
                 'uptime_rate'                => 0.995,
                 'avg_response_ms'            => 1100,
             ],
             [
-                'name'                       => 'Payment Processor',
-                'url'                        => 'https://payments.pingit.live/health',
+                'name'                       => 'Vercel',
+                'url'                        => 'https://vercel.com',
                 'status'                     => 'down',
                 'check_interval'             => 5,
                 'threshold'                  => 3,
@@ -104,27 +104,27 @@ class MonitorSeeder extends Seeder
                 'http_method'                => 'GET',
                 'follow_redirects'           => true,
                 'consecutive_failures'       => 5,
-                'tags'                       => ['production', 'api', 'critical'],
+                'tags'                       => ['production', 'frontend', 'critical'],
                 'uptime_rate'                => 0.94,
                 'avg_response_ms'            => 0,
             ],
             [
-                'name'                       => 'CDN Endpoint',
-                'url'                        => 'https://cdn.pingit.live',
+                'name'                       => 'Laravel',
+                'url'                        => 'https://laravel.com',
                 'status'                     => 'up',
                 'check_interval'             => 15,
                 'threshold'                  => 5,
-                'response_time_threshold_ms' => 500,
-                'http_method'                => 'HEAD',
+                'response_time_threshold_ms' => 3000,
+                'http_method'                => 'GET',
                 'follow_redirects'           => true,
                 'consecutive_failures'       => 0,
                 'tags'                       => ['production', 'frontend'],
-                'uptime_rate'                => 0.9995,
-                'avg_response_ms'            => 60,
+                'uptime_rate'                => 0.97,
+                'avg_response_ms'            => 350,
             ],
             [
-                'name'                       => 'Docs Portal',
-                'url'                        => 'https://docs.pingit.live',
+                'name'                       => 'Tailwind CSS',
+                'url'                        => 'https://tailwindcss.com',
                 'status'                     => 'paused',
                 'check_interval'             => 30,
                 'threshold'                  => 3,
@@ -134,23 +134,23 @@ class MonitorSeeder extends Seeder
                 'consecutive_failures'       => 0,
                 'tags'                       => ['staging'],
                 'uptime_rate'                => 0.98,
-                'avg_response_ms'            => 310,
+                'avg_response_ms'            => 280,
             ],
             [
-                'name'                       => 'Webhook Relay',
-                'url'                        => 'https://hooks.pingit.live/status',
+                'name'                       => 'Vue.js',
+                'url'                        => 'https://vuejs.org',
                 'status'                     => 'up',
                 'check_interval'             => 5,
                 'threshold'                  => 2,
                 'response_time_threshold_ms' => 1000,
                 'http_method'                => 'GET',
-                'follow_redirects'           => false,
+                'follow_redirects'           => true,
                 'consecutive_failures'       => 0,
-                'tags'                       => ['production', 'api'],
+                'tags'                       => ['production', 'frontend'],
                 'uptime_rate'                => 0.993,
                 'avg_response_ms'            => 190,
             ],
-        ];;
+        ];
 
         // ─────────────────────────────────────────────
         // Create each monitor with checks + incidents
@@ -198,17 +198,18 @@ class MonitorSeeder extends Seeder
             NotificationChannel::create([
                 'monitor_id'         => $monitor->id,
                 'type'               => 'email',
-                'value'              => $user->email,
+                'value'              => 'demo@pingit.live',
                 'notify_on_down'     => true,
                 'notify_on_recovery' => true,
                 'notify_on_degraded' => true,
             ]);
 
+            // Critical monitors get a second channel
             if (in_array('critical', $def['tags'])) {
                 NotificationChannel::create([
                     'monitor_id'         => $monitor->id,
                     'type'               => 'email',
-                    'value'              => 'oncall@pingit.live',
+                    'value'              => 'demo@pingit.live',
                     'notify_on_down'     => true,
                     'notify_on_recovery' => false,
                     'notify_on_degraded' => false,
@@ -262,18 +263,18 @@ class MonitorSeeder extends Seeder
                 // Connection failure or HTTP error
                 $isConnectionFailure = mt_rand(0, 1) === 1;
                 $checksToInsert[]    = [
-                    'monitor_id'       => $monitor->id,
-                    'status_code'      => $isConnectionFailure ? 0 : $this->randomErrorCode(),
-                    'response_time_ms' => $isConnectionFailure ? null : mt_rand(3000, 30000),
-                    'dns_resolution_ms'=> $isConnectionFailure ? null : mt_rand(10, 80),
-                    'is_up'            => false,
-                    'checked_at'       => $current->toDateTimeString(),
+                    'monitor_id'        => $monitor->id,
+                    'status_code'       => $isConnectionFailure ? 0 : $this->randomErrorCode(),
+                    'response_time_ms'  => $isConnectionFailure ? null : mt_rand(3000, 30000),
+                    'dns_resolution_ms' => $isConnectionFailure ? null : mt_rand(10, 80),
+                    'is_up'             => false,
+                    'checked_at'        => $current->toDateTimeString(),
                 ];
             } else {
                 // Successful check
-                $baseMs  = $def['avg_response_ms'];
-                $jitter  = mt_rand(-60, 120);
-                $respMs  = max(10, $baseMs + $jitter);
+                $baseMs = $def['avg_response_ms'];
+                $jitter = mt_rand(-60, 120);
+                $respMs = max(10, $baseMs + $jitter);
 
                 // Degraded monitor gets higher response times
                 if ($def['status'] === 'degraded') {
@@ -281,12 +282,12 @@ class MonitorSeeder extends Seeder
                 }
 
                 $checksToInsert[] = [
-                    'monitor_id'       => $monitor->id,
-                    'status_code'      => $this->randomSuccessCode(),
-                    'response_time_ms' => $respMs,
-                    'dns_resolution_ms'=> mt_rand(5, 60),
-                    'is_up'            => true,
-                    'checked_at'       => $current->toDateTimeString(),
+                    'monitor_id'        => $monitor->id,
+                    'status_code'       => $this->randomSuccessCode(),
+                    'response_time_ms'  => $respMs,
+                    'dns_resolution_ms' => mt_rand(5, 60),
+                    'is_up'             => true,
+                    'checked_at'        => $current->toDateTimeString(),
                 ];
             }
 
@@ -299,7 +300,7 @@ class MonitorSeeder extends Seeder
             }
         }
 
-        if (!empty($checksToInsert)) {
+        if (! empty($checksToInsert)) {
             MonitorCheck::insert($checksToInsert);
         }
     }
@@ -312,9 +313,9 @@ class MonitorSeeder extends Seeder
     {
         // Past closed incidents — everyone gets a couple
         $pastIncidentCount = match ($def['status']) {
-            'down'    => 3,
-            'degraded'=> 2,
-            default   => rand(1, 2),
+            'down'     => 3,
+            'degraded' => 2,
+            default    => rand(1, 2),
         };
 
         for ($i = $pastIncidentCount; $i >= 1; $i--) {
