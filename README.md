@@ -6,8 +6,26 @@ Pingit monitors your URLs, detects outages, tracks performance, and sends notifi
 
 ---
 
+## Live Demo
+
+**Frontend:** [https://www.pingit.live](https://www.pingit.live)
+
+**API Base URL:** `https://api.pingit.live`
+
+**Frontend Repository:** [https://github.com/joecode77/pingit-app](https://github.com/joecode77/pingit-app)
+
+**Demo credentials:**
+
+- Email: `demo@pingit.live`
+- Password: `password`
+
+> **Note:** The demo account is pre-loaded with seeded monitors using fictional URLs, so they will appear as `down`. To see the system monitoring real sites, register a new account and add your own URLs.
+
+---
+
 ## Table of Contents
 
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Requirements](#requirements)
@@ -15,8 +33,25 @@ Pingit monitors your URLs, detects outages, tracks performance, and sends notifi
 - [Running the Application](#running-the-application)
 - [Running Tests](#running-tests)
 - [API Documentation](#api-documentation)
+- [Integrations](#integrations)
 - [Architecture](#architecture)
 - [Design Decisions](#design-decisions)
+
+---
+
+## Screenshots
+
+### Dashboard
+
+![Dashboard](screenshots/dashboard.png)
+
+### Monitors
+
+![Monitors](screenshots/monitors.png)
+
+### Monitor Detail
+
+![Monitor Detail](screenshots/monitor-detail.png)
 
 ---
 
@@ -34,6 +69,7 @@ Pingit monitors your URLs, detects outages, tracks performance, and sends notifi
 - **SSL Certificate Monitoring** — Tracks expiry and alerts before certificates expire
 - **DNS Resolution Tracking** — Measures DNS resolution time separately from response time
 - **Response Time Trends** — Average, min, and max response times over 24h, 7d, or 30d
+- **Daily Stats** — Aggregated daily uptime and response time metrics per monitor (up to 90 days)
 - **Uptime Percentage** — Calculated per monitor from check history
 - **Dashboard Summary** — Overall stats across all monitors
 - **Tags** — Organise monitors into groups
@@ -136,6 +172,29 @@ php artisan migrate
 php artisan l5-swagger:generate
 ```
 
+### 9. Seed the database (optional)
+
+To populate the application with a demo user and realistic monitor data:
+
+```bash
+php artisan db:seed
+```
+
+This creates a demo account with pre-configured monitors, 30 days of check history, incidents, tags, and notification channels so you can explore the full API without manually creating data.
+
+**Demo credentials:**
+
+- Email: `demo@pingit.live`
+- Password: `password`
+
+> **Note:** The seeded monitors use fictional URLs for demonstration purposes and will appear as `down` when the scheduler runs real checks. To monitor real sites, register a new account and add your own URLs.
+
+### 10. Run the frontend (optional)
+
+To run the full stack locally, clone the frontend repository and follow the setup instructions included there:
+
+[https://github.com/joecode77/pingit-app](https://github.com/joecode77/pingit-app)
+
 ---
 
 ## Running the Application
@@ -200,6 +259,12 @@ Interactive Swagger documentation is available at:
 http://localhost:8000/api/documentation
 ```
 
+Or on the live server:
+
+```
+https://api.pingit.live/api/documentation
+```
+
 ### Authentication
 
 All protected endpoints require a Bearer token in the `Authorization` header:
@@ -212,31 +277,79 @@ Obtain a token by registering or logging in via the Auth endpoints.
 
 ### Endpoints Overview
 
-| Method | Endpoint                                  | Description                 |
-| ------ | ----------------------------------------- | --------------------------- |
-| POST   | `/api/auth/register`                      | Register a new user         |
-| POST   | `/api/auth/login`                         | Login and receive token     |
-| POST   | `/api/auth/logout`                        | Logout and revoke token     |
-| GET    | `/api/monitors`                           | List all monitors           |
-| POST   | `/api/monitors`                           | Create a monitor            |
-| GET    | `/api/monitors/{id}`                      | Get a single monitor        |
-| PUT    | `/api/monitors/{id}`                      | Update a monitor            |
-| DELETE | `/api/monitors/{id}`                      | Delete a monitor            |
-| POST   | `/api/monitors/{id}/pause`                | Pause a monitor             |
-| POST   | `/api/monitors/{id}/resume`               | Resume a monitor            |
-| GET    | `/api/monitors/{id}/history`              | Check history (paginated)   |
-| GET    | `/api/monitors/{id}/history/export`       | Export history as CSV       |
-| GET    | `/api/monitors/{id}/incidents`            | Incident history            |
-| GET    | `/api/monitors/{id}/response-times`       | Response time trends        |
-| POST   | `/api/monitors/{id}/tags`                 | Attach a tag                |
-| DELETE | `/api/monitors/{id}/tags/{tagId}`         | Detach a tag                |
-| GET    | `/api/monitors/{id}/channels`             | List notification channels  |
-| POST   | `/api/monitors/{id}/channels`             | Add notification channel    |
-| DELETE | `/api/monitors/{id}/channels/{channelId}` | Delete notification channel |
-| GET    | `/api/dashboard`                          | Dashboard summary           |
-| GET    | `/api/tags`                               | List tags                   |
-| POST   | `/api/tags`                               | Create a tag                |
-| DELETE | `/api/tags/{id}`                          | Delete a tag                |
+| Method | Endpoint                                  | Description                   |
+| ------ | ----------------------------------------- | ----------------------------- |
+| POST   | `/api/auth/register`                      | Register a new user           |
+| POST   | `/api/auth/login`                         | Login and receive token       |
+| POST   | `/api/auth/logout`                        | Logout and revoke token       |
+| GET    | `/api/monitors`                           | List all monitors             |
+| POST   | `/api/monitors`                           | Create a monitor              |
+| GET    | `/api/monitors/{id}`                      | Get a single monitor          |
+| PUT    | `/api/monitors/{id}`                      | Update a monitor              |
+| DELETE | `/api/monitors/{id}`                      | Delete a monitor              |
+| POST   | `/api/monitors/{id}/pause`                | Pause a monitor               |
+| POST   | `/api/monitors/{id}/resume`               | Resume a monitor              |
+| GET    | `/api/monitors/{id}/history`              | Check history (paginated)     |
+| GET    | `/api/monitors/{id}/history/export`       | Export history as CSV         |
+| GET    | `/api/monitors/{id}/incidents`            | Incident history              |
+| GET    | `/api/monitors/{id}/response-times`       | Response time trends          |
+| GET    | `/api/monitors/{id}/daily-stats`          | Daily uptime & response stats |
+| POST   | `/api/monitors/{id}/tags`                 | Attach a tag                  |
+| DELETE | `/api/monitors/{id}/tags/{tagId}`         | Detach a tag                  |
+| GET    | `/api/monitors/{id}/channels`             | List notification channels    |
+| POST   | `/api/monitors/{id}/channels`             | Add notification channel      |
+| DELETE | `/api/monitors/{id}/channels/{channelId}` | Delete notification channel   |
+| GET    | `/api/dashboard`                          | Dashboard summary             |
+| GET    | `/api/tags`                               | List tags                     |
+| POST   | `/api/tags`                               | Create a tag                  |
+| DELETE | `/api/tags/{id}`                          | Delete a tag                  |
+
+---
+
+## Integrations
+
+### Webhooks
+
+Webhooks allow you to push status change events from Pingit to external systems such as Slack, PagerDuty, or your own custom dashboard. When a monitor changes status, Pingit sends an HTTP `POST` request to your configured webhook URL with a JSON payload describing the event. This means your external systems are notified in real time without needing to poll the API.
+
+To configure a webhook, add a notification channel of type `webhook` to any monitor via the `POST /api/monitors/{id}/channels` endpoint.
+
+**Payload structure:**
+
+```json
+{
+    "event": "monitor.down",
+    "monitor": {
+        "id": 1,
+        "name": "My Website",
+        "url": "https://example.com"
+    },
+    "triggered_at": "2026-05-17T10:00:00+00:00"
+}
+```
+
+**Possible `event` values:**
+
+| Event              | Trigger                                                      |
+| ------------------ | ------------------------------------------------------------ |
+| `monitor.down`     | Monitor has reached the failure threshold                    |
+| `monitor.recovery` | Monitor has recovered after being down                       |
+| `monitor.degraded` | Monitor is responding slowly beyond the configured threshold |
+
+---
+
+### AI Agent Integration
+
+The webhook payload is not limited to human-facing tools like Slack. Because each event delivers a structured JSON payload the moment a status change occurs, it is a natural trigger for an AI agent.
+
+Some examples of what an AI agent could do upon receiving a Pingit webhook event:
+
+- **Automated investigation** — On receiving a `monitor.down` event, an agent could immediately query server logs, check related services, or run diagnostics and compile a report before a human even looks at the alert.
+- **Intelligent incident reporting** — An agent could draft and post a detailed incident summary to a Slack channel or ticketing system, enriched with context beyond just the raw status change.
+- **Smart paging decisions** — An agent could decide whether to escalate and page an on-call engineer based on the monitor's history, the time of day, or the severity of the outage.
+- **Automated remediation** — An agent could trigger infrastructure actions such as restarting a service, scaling resources, or rolling back a deployment in response to a `monitor.down` event.
+
+In short, the webhook system turns Pingit into an event source that any AI-powered workflow can subscribe to and act on in real time.
 
 ---
 
