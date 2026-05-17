@@ -13,10 +13,11 @@ class MonitorService
 {
     /**
      * Create a new monitor for the given user.
+     * Automatically creates a default email notification channel for the owner.
      */
     public function create(User $user, array $data): Monitor
     {
-        return $user->monitors()->create([
+        $monitor = $user->monitors()->create([
             'url'                        => $data['url'],
             'name'                       => $data['name'] ?? null,
             'check_interval'             => $data['check_interval'] ?? 5,
@@ -28,6 +29,17 @@ class MonitorService
             'status'                     => 'pending',
             'next_check_at'              => now(),
         ]);
+
+        // Automatically add the monitor owner's email as a default notification channel
+        $monitor->notificationChannels()->create([
+            'type'               => 'email',
+            'value'              => $user->email,
+            'notify_on_down'     => true,
+            'notify_on_recovery' => true,
+            'notify_on_degraded' => false,
+        ]);
+
+        return $monitor;
     }
 
     /**
@@ -35,7 +47,7 @@ class MonitorService
      */
     public function getAllForUser(User $user, array $filters = []): Collection
     {
-        $query = $user->monitors();
+        $query = $user->monitors()->with('tags');
 
         // Filter by status
         if (! empty($filters['status'])) {
@@ -72,7 +84,7 @@ class MonitorService
      */
     public function findForUser(User $user, int $id): ?Monitor
     {
-        return $user->monitors()->find($id);
+        return $user->monitors()->with('tags')->find($id);
     }
 
     /**
