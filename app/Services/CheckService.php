@@ -93,7 +93,7 @@ class CheckService
         if ($previousStatus === 'down' && $newStatus === 'up') {
             $this->closeIncident($monitor);
             if ($this->canSendNotification($monitor)) {
-                Mail::to($monitor->user->email)->send(new MonitorRecoveredMail($monitor));
+                $this->sendEmailNotifications($monitor, 'recovery');
                 $this->markNotified($monitor);
             }
             $this->dispatchWebhooks($monitor, 'recovery');
@@ -102,7 +102,7 @@ class CheckService
         // Send degraded notification if monitor just became degraded
         if ($previousStatus !== 'degraded' && $newStatus === 'degraded') {
             if ($this->canSendNotification($monitor)) {
-                Mail::to($monitor->user->email)->send(new MonitorDegradedMail($monitor));
+                $this->sendEmailNotifications($monitor, 'degraded');
                 $this->markNotified($monitor);
             }
             $this->dispatchWebhooks($monitor, 'degraded');
@@ -132,7 +132,7 @@ class CheckService
             $this->openIncident($monitor);
 
             if ($this->canSendNotification($monitor)) {
-                Mail::to($monitor->user->email)->send(new MonitorDownMail($monitor));
+                $this->sendEmailNotifications($monitor, 'down');
                 $this->markNotified($monitor);
             }
 
@@ -173,6 +173,30 @@ class CheckService
         $successful = $monitor->checks()->where('is_up', true)->count();
 
         return round(($successful / $total) * 100, 2);
+    }
+
+    /**
+     * Send email notifications to all configured channels for a given event.
+     */
+    private function sendEmailNotifications(Monitor $monitor, string $event): void
+    {
+        $channels = $monitor->notificationChannels()
+            ->where('type', 'email')
+            ->where("notify_on_{$event}", true)
+            ->get();
+
+        foreach ($channels as $channel) {
+            try {
+                $mail = match($event) {
+                    'down'     => new MonitorDownMail($monitor),
+                    'recovery' => new MonitorRecoveredMail($monitor),
+                    'degraded' => new MonitorDegradedMail($monitor),
+                };
+                Mail::to($channel->value)->send($mail);
+            } catch (\Throwable $e) {
+                Log::warning("Email notification failed for channel [{$channel->id}]: {$e->getMessage()}");
+            }
+        }
     }
 
     /**
